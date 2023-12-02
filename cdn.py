@@ -1,6 +1,8 @@
+from __future__ import annotations
 import cachetools as ct
 import math
 import heapq
+from functools import partial
 
 
 def calculate_distance(point1, point2):
@@ -11,13 +13,32 @@ def calculate_distance(point1, point2):
 def calculate_latency(point1, point2): # one way latency, assumes dist are in units of kilometers 
     return math.floor(calculate_distance(point1, point2) / 200000 * 1000) # 2/3 speed of light, adjusted for ms units
 
+def user_send_request(request, sim):
+    user = request.source
+    proc_time = sim.simulator_time + calculate_latency(user.coords, user.node.coords)
+    func = partial(node_receive_request, request = request, sim = sim)
+    heapq.heappush(sim.event_queue, Event(func, proc_time, sim.simulator_time))
+
+def user_receive_request(request, sim):
+    request.source.received[request.request_id] = sim.simulator_time
+    print(f"Received request of id {request.request_id} at {sim.simulator_time}")
+
+def node_receive_request(request, sim):
+    user = request.source
+    node = request.dest
+    if request.item in node.cache.keys():
+        proc_time = sim.simulator_time + calculate_latency(user.coords, node.coords)
+        func = partial(user_receive_request, request = request, sim = sim)
+        heapq.heappush(sim.event_queue, 
+        Event(func, proc_time, sim.simulator_time))
+    else:
+        pass
             
 class Event:
-    def __init__(self, event_func, proc_time, schedule_time, *args):
+    def __init__(self, event_func, proc_time, schedule_time):
         self.event_func = event_func
         self.proc_time = proc_time # time that event is processed 
         self.schedule_time = schedule_time  # time event was scheduled
-        self.args = args
     
     def __lt__(self, other):
         return self.proc_time < other.proc_time
@@ -27,6 +48,9 @@ class Event:
 
     def __eq__(self, other):
         return self.proc_time == other.proc_time
+
+    def __str__(self):
+        return f"Event Type: {self.event_func.func.__name__}, Event Trigger Time: {self.proc_time}, Scheduled At: {self.schedule_time} "
 
 
 class Simulator:
@@ -42,15 +66,17 @@ class Simulator:
         for user in self.users:
             id = 0
             for item, time in user.workload:
-                request = Request(user, item, id)
-                heapq.heappush(self.event_queue, Event(user.send_request, time, 0, request))
+                request = Request(user, user.node, item, id)
+                func = partial(user_send_request, request = request, sim = self)
+                heapq.heappush(self.event_queue, Event(func, time, 0))
                 id += 1
 
     def run(self):
         while len(self.event_queue) != 0:
             event = heapq.heappop(self.event_queue)
+            print(event)
             self.simulator_time = event.proc_time 
-            event.event_func(*event.args, self)     
+            event.event_func()     
      
 class Origin:
     def __init__(self, coords, content):
@@ -60,12 +86,6 @@ class Origin:
     def distribute_content(self, server, request):
         pass
 
-class Request:
-    def __init__(self, user, item, request_id):
-        self.user = user
-        self.item = item
-        self.request_id = request_id
-
 class LRU_Node:
     def __init__(self, coords, origin, cache_size, bandwidth):
         self.coords = coords
@@ -73,13 +93,6 @@ class LRU_Node:
         self.origin = origin
         self.bandwidth = bandwidth
 
-    def receive_request(self, request : Request, sim):
-        if request.item in self.cache.keys():
-            proc_time = sim.simulator_time + calculate_latency(self.coords, request.user.coords)
-            heapq.heappush(sim.event_queue, 
-            Event(request.user.receive_requested, proc_time, sim.simulator_time, request.request_id))
-        else:
-            return self.origin.distribute_content(self, request)
 
 class User:
     received = {}
@@ -88,18 +101,19 @@ class User:
         self.workload = workload
         self.node = node
 
-    def send_request(self, request, sim):
-        proc_time =  sim.simulator_time + calculate_latency(self.coords, self.node.coords)
-        heapq.heappush(sim.event_queue, Event(self.node.receive_request, proc_time, sim.simulator_time, request))
 
-    def receive_requested(self,request_id, sim):
-        self.received[request_id] = sim.simulator_time
-        print(f"Received request of id {request_id} at {sim.simulator_time}")
+
+class Request:
+    def __init__(self, source, dest, item, request_id):
+        self.source = source
+        self.dest = dest
+        self.item = item
+        self.request_id = request_id
             
 
 def main():
-    origin = Origin((0, 2000), {1 : 500, 2 : 200})
-    node = LRU_Node((0,500), origin, 5, 0)
+    origin = Origin((0, 2000 * 10^3), {1 : 500, 2 : 200})
+    node = LRU_Node((0,500 * 10^3), origin, 5, 0)
     node.cache[1] =  20
     user = User((0,0), [(1, 5), (1, 26)], node)
 
