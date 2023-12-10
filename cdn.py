@@ -4,15 +4,18 @@ import math
 import heapq
 import queue
 import random
+import statistics
 from functools import partial
+import numpy as np
 
-NODE_WAIT = 10 # 200 requests per second
-CONGESTION_REROUTE = True
-REROUTE_THRESHOLD = 40
+
+node_wait = 10 # 200 requests per second
+congestion_reroute = False
+reroute_threshold = 50
 
 def calculate_distance(point1, point2):
-    x1, y1 = point1
-    x2, y2 = point2
+    x1, y1 = point1[0], point1[1]
+    x2, y2 = point2[0], point2[1]
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
 def calculate_latency(point1, point2): # one way latency, assumes dist are in units of kilometers 
@@ -25,7 +28,7 @@ def get_stats(user : User):
 def find_closest_node(user, sim):
     closest_nodes = sorted(sim.nodes, key=lambda x: calculate_distance(user.coords, x.coords))
     for node in closest_nodes:
-        if node.request_queue.qsize() < REROUTE_THRESHOLD:
+        if node.request_queue.qsize() < reroute_threshold:
             return node
     return None
 
@@ -33,9 +36,9 @@ def user_send_request(request, sim):
     user = request.source
     node = request.node
 
-    if CONGESTION_REROUTE and node.request_queue.qsize() >= REROUTE_THRESHOLD:
+    if congestion_reroute and node.request_queue.qsize() >= reroute_threshold:
         reroute_node = find_closest_node(user, sim)
-        print(f"Reroute Node ID: {reroute_node.id}")
+       # print(f"Reroute Node ID: {reroute_node.id}")
         if reroute_node is not None:
             request.node = reroute_node
             node = reroute_node
@@ -51,18 +54,21 @@ def user_receive_item(request, sim):
 def node_receive_request(request, sim):
     node = request.node
     if node.request_queue.qsize() == 0: 
-        proc_time = sim.simulator_time + NODE_WAIT
+        proc_time = sim.simulator_time + node_wait
         func = partial(node_serve_requests, node = node, sim = sim) # serve requests will recursively handle requests until the queue is empty
         heapq.heappush(sim.event_queue, Event(func, proc_time, sim.simulator_time)) # node instantly processes first request
     node.request_queue.put(request)
 
 def node_serve_requests(node, sim):
-    print(f"Current Queue Size: {node.request_queue.qsize()}. Time: {sim.simulator_time}" )
+   # print(f"Current Queue Size: {node.request_queue.qsize()}. Time: {sim.simulator_time}" )
+    if node.request_queue.qsize() > node.max_queue_length:
+        node.max_queue_length = node.request_queue.qsize() 
     request = node.request_queue.get()
     user = request.source
     node.num_requests +=1
     if request.item_tag in node.cache.keys():
         node.cache_hits +=1
+        request.cache_hit = True
         request.item = node.cache[request.item_tag]
         proc_time = sim.simulator_time + calculate_latency(user.coords, node.coords)
         func = partial(user_receive_item, request = request, sim = sim)
@@ -74,7 +80,7 @@ def node_serve_requests(node, sim):
     
     if node.request_queue.qsize() != 0:
         func = partial(node_serve_requests, node = node, sim = sim)
-        proc_time = sim.simulator_time + NODE_WAIT
+        proc_time = sim.simulator_time + node_wait
         heapq.heappush(sim.event_queue, Event(func, proc_time, sim.simulator_time)) 
 
 def origin_receive_request(request, sim):
@@ -115,20 +121,21 @@ class Event:
         return f"Event Type: {self.event_func.func.__name__}, Event Trigger Time: {self.proc_time}, Scheduled At: {self.schedule_time} "
 
 class Simulator:
-    event_queue = []
-    simulator_time = 0
+
 
     def __init__(self, users, origins, nodes):
         self.users = users
         self.origins = origins
         self.nodes = nodes
+        self.event_queue = []
+        self.simulator_time = 0
 
     def initial_schedule(self):
         for user in self.users:
             count = 0
             user.workload = sorted(user.workload, key=lambda x: x[1])
             for item, time in user.workload:
-                request = Request(user, user.node, item, f"{user.id}.{count}" , time)
+                request = Request(user, find_closest_node(user, self), item, f"{user.id}.{count}" , time)
                 func = partial(user_send_request, request = request, sim = self)
                 heapq.heappush(self.event_queue, Event(func, time, 0))
                 count += 1
@@ -153,30 +160,33 @@ class Origin:
         self.coords = coords
         self.content = content
 
-    def distribute_content(self, server, request):
-        pass
-
-class LRU_Node:
-    def __init__(self, coords, origin, cache_size, id):
+class Node:
+    def __init__(self, coords, origin, cache_size, cache_type, id):
         self.coords = coords
-        self.cache = ct.LRUCache(cache_size, len)
         self.origin = origin
         self.id = id
         self.used_conns = 0
         self.request_queue = queue.Queue()
+        self.max_queue_length = 0
         self.cache_hits = 0
         self.num_requests = 0
+        match cache_type:
+            case 0:
+                self.cache = ct.LRUCache(cache_size, len)
+            case 1:
+                self.cache = ct.FIFOCache(cache_size, len)
+            case 2:
+                self.cache = ct.LFUCache(cache_size, len)
 
 class User:
-    def __init__(self, coords, workload, node : LRU_Node, id):
+    def __init__(self, coords, workload, id):
         self.coords = coords
         self.workload = workload
-        self.node = node
         self.id = id
         self.received = []
 
 class Request:
-    def __init__(self, source, node : LRU_Node, item_tag, request_id, create_time):
+    def __init__(self, source, node : Node, item_tag, request_id, create_time):
         self.source = source
         self.node = node
         self.item_tag = item_tag
@@ -184,66 +194,118 @@ class Request:
         self.request_id = request_id
         self.create_time = create_time 
         self.receive_time = None
+        self.cache_hit = False
 
     def __str__(self):
-        return f"Request {self.request_id} for Tag: {self.item_tag}, Created At: {self.create_time} ms, Completed At: {self.receive_time} ms, Time Elapsed: {self.receive_time - self.create_time}"
+        return f"Request {self.request_id} for Tag: {self.item_tag}, Created At: {self.create_time} ms, Completed At: {self.receive_time} ms, Time Elapsed: {self.receive_time - self.create_time}, Cache Hit: {self.cache_hit}"
 
 def run_simulation(coordinates, node_coordinates, user_coordinates, cache_policy, cache_size, max_concurrent_requests, reroute_requests=False):
     # TODO: replace main call with simulation consuming parameters
     # example input: {'userCoordinates': [[61.13194783528646, 44.944437662760414]], 'cachePolicy': 0, 'cacheSize': 50, 'rerouteRequests': False, 'maxConcurrentRequests': 50, 'coordinates': [33.131947835286454, 33.6111094156901], 'nodeCoordinates': [[61.13194783528646, 44.944437662760414], [65.79861450195312, 25.27777099609375], [19.798614501953125, 31.27777099609375], [19.63194783528646, 37.944437662760414], [35.298614501953125, 58.94443766276042], [65.9652811686198, 40.611104329427086]]}
     # note: cache policy: 0= LRU, 1 = FIFO, 2 = LFU
-    main()
+    requests, nodes, elapsed_time = simulate_inputs(coordinates, node_coordinates, user_coordinates, cache_policy, cache_size, max_concurrent_requests, reroute_requests=False)
+
+     
+    cache_hit_ratios = [(node.cache_hits / node.num_requests * 100) for node in nodes]
+    queue_lengths = [node.max_queue_length for node in nodes]
+    elapsed_times = [request.receive_time - request.create_time for request in requests]
+    average_hit_ratio = statistics.mean(cache_hit_ratios)
+    average_wait_time = statistics.mean(elapsed_times)
+
+    # for request in requests:
+    #     print(request)
+    # print(average_hit_ratio)
+    # print(average_wait_time)
+    # print(queue_lengths)
 
     # TODO: replace these results
-    dummy_return = {
+    results = {
         # all requests made, sorted in chronological order
         "requests": [
             # format: [request origin coordinates (normalized to 0-100), request destination coordinates, timestamp, cache hit?]
-            [[50,40], [23, 42], 5341, True],
-            [[50,20], [20, 17], 6954, False],
-            [[55,54], [20, 17], 6954, False]
+            [str(request) for request in requests]
         ],
         # coordinates, all normalized to (0-100)
         "user_locations": [
-            [50,40], [50,20]
+            user_coordinates
         ],
-        "origin_location": [55,54],
+        "origin_location": coordinates,
         "node_locations": [
-            [23, 42], [20, 17]
+            node_coordinates
         ],
         #statistics
-        "cache_hit_percentage": 54.5,
-        "total_requests": 10023432,
-        "average_request_wait_time": 332,
-        "total_time": 3464363
+        "cache_hit_percentage": average_hit_ratio,
+        "total_requests": len(requests),
+        "average_request_wait_time": average_wait_time,
+        "total_time_elapsed": elapsed_time
         # plus any other statistics you want to add
     }
-    return {"data": dummy_return}
+    return {"data": results}
 
+def simulate_inputs(origin_coords, node_coords, user_coords, cache_policy, cache_size, max_request_per_second, reroute_requests):
+    global node_wait, congestion_reroute
+    congestion_reroute = reroute_requests
+    node_wait = math.floor(1000 / max_request_per_second)
 
+    origin_coords = [400 * x for x in origin_coords]
+    node_coords = [[400 * y for y in x] for x in node_coords]
+    user_coords = [[400 * y for y in x] for x in user_coords]
+
+    num_items = random.randint(cache_size * 2, cache_size * 5)
+    items = {}
+    for i in range(num_items):
+        items[i] = Item(i, 1)
+
+    origin = Origin(origin_coords, items)
+
+    nodes = []
+    for count, coords in enumerate(node_coords):
+        node = Node(coords, origin, cache_size, cache_policy, count)
+        nodes.append(node)
+
+    users = []
+
+    samples = list(range(0,num_items))
+
+    for count, coords in enumerate(user_coords):
+        for i in range(100):
+            workload = []
+            for j in range(20):
+                x = random.choices(list(range(0, num_items)), samples)[0]
+                y = random.randint(0, 10 * 1000)
+                workload.append((x,y))
+            user = User(coords, workload, count)
+            users.append(user)
+    
+    sim = Simulator(users, [origin], nodes)
+    sim.initial_schedule()
+    sim.run()
+
+    requests = [request for user in users for request in user.received ]
+    requests = sorted(requests, key=lambda x: x.create_time)
+
+    return requests, nodes, sim.simulator_time
+        
 def main():
-    origin = Origin((0, 2000 * 10^3), {1 : Item(1,4), 2 : Item(2,5), 3 : Item(3,2)})
-    node1 = LRU_Node((0,500 * 10^3), origin, 7, 0)
-    node2 = LRU_Node((0,800 * 10^3), origin, 7, 1)
-    node3 = LRU_Node((0,700 * 10^3), origin, 7, 2)
+    origin = Origin([0, 2000], {1 : Item(1,4), 2 : Item(2,5), 3 : Item(3,2)})
+    node1 = Node([0,500], origin, 100, 0, 0)
+    node2 = Node([0,800], origin, 7, 0, 1)
+    node3 = Node([0,700], origin, 7, 0, 2)
 
     workload = []
-    for i in range(900):
-        x = random.randint(1,3)
-        y = random.randint(0, 5000)
-        workload.append((x,y))
-    user1 = User((0,0), [(1, 5), (1, 250), (2, 26), (2, 300), (3, 19)], node1, 0)
-    user2 = User((0, 0), workload, node1, 1)
-    sim = Simulator([user1, user2], [origin], [node1, node2, node3])
+    random.seed(34239042)
 
+    user1 = User([0,0], [(1, 5), (1, 250), (2, 26), (2, 300), (3, 19)], 0)
+    user2 = User([0, 0], workload, 1)
+    sim = Simulator([user1], [origin], [node1, node2, node3])
 
     sim.initial_schedule()
     sim.run()
 
     get_stats(user1)
-    get_stats(user2)
+  #  get_stats(user2)
     print(f"Cache Hit Percentage: {node1.cache_hits / node1.num_requests * 100}")
 
 
 if __name__ == "__main__":
-    main()
+    run_simulation([0, 100], [[0,50]],[[0,0]], 2, 10, 200, False)
