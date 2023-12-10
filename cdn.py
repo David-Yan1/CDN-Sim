@@ -199,16 +199,17 @@ def run_simulation(coordinates, node_coordinates, user_coordinates, cache_policy
         # all requests made, sorted in chronological order
         "requests": [
             # format: [request origin coordinates (normalized to 0-100), request destination coordinates, timestamp, cache hit?]
-            [[50,82], [23, 42], 5341, True],
-            [[50,20], [1, 17], 6954, False]
+            [[50,40], [23, 42], 5341, True],
+            [[50,20], [20, 17], 6954, False],
+            [[55,54], [20, 17], 6954, False]
         ],
         # coordinates, all normalized to (0-100)
         "user_locations": [
-            [50,82], [50,20]
+            [50,40], [50,20]
         ],
-        "origin_location": [10,54],
+        "origin_location": [55,54],
         "node_locations": [
-            [23, 42], [1, 17]
+            [23, 42], [20, 17]
         ],
         #statistics
         "cache_hit_percentage": 54.5,

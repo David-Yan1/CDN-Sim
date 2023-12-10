@@ -1,22 +1,14 @@
 import React from "react";
+import ResultsMap from "./ResultsMap";
 
 function ResultsPage({ results }) {
   console.log(results);
   return (
     <div className="results">
       <h1>Results Summary</h1>
-      {/* TODO: add requests map */}
       <section>
-        <h2>Requests</h2>
-        <ul>
-          {results.requests.map((request, index) => (
-            <li key={index}>
-              Origin: ({request[0][0]}, {request[0][1]}), Destination: (
-              {request[1][0]}, {request[1][1]}), Timestamp: {request[2]}, Cache
-              Hit: {request[3] ? "Yes" : "No"}
-            </li>
-          ))}
-        </ul>
+        <h2>Requests Map</h2>
+        <ResultsMap data={results}/>
       </section>
 
       <section>
