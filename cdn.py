@@ -188,9 +188,9 @@ class Request:
     def __str__(self):
         return f"Request {self.request_id} for Tag: {self.item_tag}, Created At: {self.create_time} ms, Completed At: {self.receive_time} ms, Time Elapsed: {self.receive_time - self.create_time}"
 
-def run_simulation(coordinates, node_coordinates, number_of_users, cache_policy, cache_size, latency, max_concurrent_requests, reroute_requests=False):
+def run_simulation(coordinates, node_coordinates, user_coordinates, cache_policy, cache_size, max_concurrent_requests, reroute_requests=False):
     # TODO: replace main call with simulation consuming parameters
-    # example input: {'numberOfUsers': 50, 'cachePolicy': 0, 'cacheSize': 50, 'latency': 50, 'rerouteRequests': False, 'maxConcurrentRequests': 50, 'coordinates': [33.131947835286454, 33.6111094156901], 'nodeCoordinates': [[61.13194783528646, 44.944437662760414], [65.79861450195312, 25.27777099609375], [19.798614501953125, 31.27777099609375], [19.63194783528646, 37.944437662760414], [35.298614501953125, 58.94443766276042], [65.9652811686198, 40.611104329427086]]}
+    # example input: {'userCoordinates': [[61.13194783528646, 44.944437662760414]], 'cachePolicy': 0, 'cacheSize': 50, 'rerouteRequests': False, 'maxConcurrentRequests': 50, 'coordinates': [33.131947835286454, 33.6111094156901], 'nodeCoordinates': [[61.13194783528646, 44.944437662760414], [65.79861450195312, 25.27777099609375], [19.798614501953125, 31.27777099609375], [19.63194783528646, 37.944437662760414], [35.298614501953125, 58.94443766276042], [65.9652811686198, 40.611104329427086]]}
     # note: cache policy: 0= LRU, 1 = FIFO, 2 = LFU
     main()
 

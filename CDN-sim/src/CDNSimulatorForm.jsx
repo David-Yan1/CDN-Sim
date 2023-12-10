@@ -5,10 +5,9 @@ import MultiMap from "./MultiMap";
 function CDNSimulatorForm({ setShowResults, setResults }) {
   const [coordinates, setCoordinates] = useState([0, 0]);
   const [nodeCoordinates, setNodeCoordinates] = useState([]);
-  const [numberOfUsers, setNumberOfUsers] = useState(50);
+  const [userCoordinates, setUserCoordinates] = useState([]);
   const [cachePolicy, setCachePolicy] = useState(0);
   const [cacheSize, setCacheSize] = useState(50);
-  const [latency, setLatency] = useState(50);
   const [rerouteRequests, setRerouteRequests] = useState(false);
   const [maxConcurrentRequests, setMaxConcurrentRequests] = useState(50);
 
@@ -34,10 +33,9 @@ function CDNSimulatorForm({ setShowResults, setResults }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = {
-      numberOfUsers,
+      userCoordinates,
       cachePolicy,
       cacheSize,
-      latency,
       rerouteRequests,
       maxConcurrentRequests,
       coordinates,
@@ -53,6 +51,7 @@ function CDNSimulatorForm({ setShowResults, setResults }) {
   };
   const handleReset = () => {
     setNodeCoordinates([]);
+    setUserCoordinates([])
   };
   return (
     <form onSubmit={handleSubmit} className="cdn-form">
@@ -72,23 +71,18 @@ function CDNSimulatorForm({ setShowResults, setResults }) {
           coordinates={nodeCoordinates}
           setCoordinates={setNodeCoordinates}
         />
+      </div>
+    {/* User locations */}
+    <div>
+        <label>Where do you want the users to be? (Each dot represents 100 users)</label>
+        <MultiMap
+          coordinates={userCoordinates}
+          setCoordinates={setUserCoordinates}
+        />
         <button type="button" onClick={handleReset}>
           Reset
         </button>
       </div>
-      {/* Number of Users */}
-      <div>
-        <label>How many users do you want?</label>
-        <input
-          type="range"
-          min="1"
-          max="100"
-          value={numberOfUsers}
-          onChange={(e) => setNumberOfUsers(e.target.value)}
-        />
-        <span>{numberOfUsers}</span>
-      </div>
-
       <h2>Caching Details</h2>
       {/* Cache Eviction Policy */}
       <div>
@@ -116,26 +110,14 @@ function CDNSimulatorForm({ setShowResults, setResults }) {
       </div>
 
       <h2>Additional Inputs</h2>
-      {/* Latency */}
-      <div>
-        <label>Latency (ms):</label>
-        <input
-          type="range"
-          min="1"
-          max="100"
-          value={latency}
-          onChange={(e) => setLatency(e.target.value)}
-        />
-        <span>{latency}</span>
-      </div>
 
       {/* Max Concurrent Requests Per Server */}
       <div>
-        <label>Max concurrent requests per server:</label>
+        <label>Max number of requests per second per node:</label>
         <input
           type="range"
-          min="10"
-          max="100"
+          min="1"
+          max="1000"
           value={maxConcurrentRequests}
           onChange={(e) => setMaxConcurrentRequests(e.target.value)}
         />
