@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 import json
 from flask_cors import CORS
 from cdn import run_simulation
@@ -33,7 +33,7 @@ def simulate():
 
         results = run_simulation(coordinates=coordinates, node_coordinates=nodeCoordinates, number_of_users=numberOfUsers, cache_policy=cachePolicy, cache_size=cacheSize, latency=latency, max_concurrent_requests=maxConcurrentRequests, reroute_requests=rerouteRequests)
 
-        return f"results: {results}", 200
+        return  jsonify(results), 200
     else:
         return 'No data provided', 400
 

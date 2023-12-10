@@ -2,7 +2,7 @@ import { useState } from "react";
 import Map from "./Map";
 import MultiMap from "./MultiMap";
 
-function CDNSimulatorForm() {
+function CDNSimulatorForm({ setShowResults, setResults }) {
   const [coordinates, setCoordinates] = useState([0, 0]);
   const [nodeCoordinates, setNodeCoordinates] = useState([]);
   const [numberOfUsers, setNumberOfUsers] = useState(50);
@@ -46,9 +46,10 @@ function CDNSimulatorForm() {
     const queryString = new URLSearchParams({
       data: JSON.stringify(formData),
     }).toString();
-
-    const results = await runSimulation(queryString);
-    console.log(results);
+    const data = await runSimulation(queryString);
+    const results = JSON.parse(data);
+    setResults(results["data"]);
+    setShowResults(true);
   };
   const handleReset = () => {
     setNodeCoordinates([]);

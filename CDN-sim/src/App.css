@@ -56,3 +56,8 @@
 .cdn-form label {
   margin: 5px;
 }
+
+.results {
+  font-size: 30px;
+  text-align: left;
+}
