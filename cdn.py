@@ -13,6 +13,24 @@ node_wait = 10 # 200 requests per second
 congestion_reroute = False
 reroute_threshold = 50
 
+def print_trace(user : User):
+    for request in user.received:
+        print(request)
+
+def print_stats(sim):
+    nodes = sim.nodes
+    requests = [request for user in sim.users for request in user.received ]
+    requests = sorted(requests, key=lambda x: x.create_time)
+    cache_hit_ratios = [(node.cache_hits / node.num_requests * 100) for node in nodes if node.num_requests != 0]
+    queue_lengths = [node.max_queue_length for node in nodes]
+    elapsed_times = [request.receive_time - request.create_time for request in requests]
+    print(f"Average Hit Ratio: {statistics.mean(cache_hit_ratios)}")
+    print(f"Average Wait Time: {statistics.mean(elapsed_times)}")
+    print(f"Total Wait Time: {sum(elapsed_times)}")
+    print(f"Max Wait Time: {max(elapsed_times)}")
+    print(f"Min Wait Time: {min(elapsed_times)}")
+    print(f"Max Node Queue Length: {max(queue_lengths)}")
+
 def calculate_distance(point1, point2):
     x1, y1 = point1[0], point1[1]
     x2, y2 = point2[0], point2[1]
@@ -20,10 +38,6 @@ def calculate_distance(point1, point2):
 
 def calculate_latency(point1, point2): # one way latency, assumes dist are in units of kilometers 
     return math.floor(calculate_distance(point1, point2) / 200000 * 1000) # 2/3 speed of light, adjusted for ms units
-
-def get_stats(user : User):
-    for request in user.received:
-        print(request)
 
 def find_closest_node(user, sim):
     closest_nodes = sorted(sim.nodes, key=lambda x: calculate_distance(user.coords, x.coords))
@@ -121,8 +135,6 @@ class Event:
         return f"Event Type: {self.event_func.func.__name__}, Event Trigger Time: {self.proc_time}, Scheduled At: {self.schedule_time} "
 
 class Simulator:
-
-
     def __init__(self, users, origins, nodes):
         self.users = users
         self.origins = origins
@@ -206,7 +218,7 @@ def run_simulation(coordinates, node_coordinates, user_coordinates, cache_policy
     requests, nodes, elapsed_time = simulate_inputs(coordinates, node_coordinates, user_coordinates, cache_policy, cache_size, max_concurrent_requests, reroute_requests=False)
 
      
-    cache_hit_ratios = [(node.cache_hits / node.num_requests * 100) for node in nodes]
+    cache_hit_ratios = [(node.cache_hits / node.num_requests * 100) for node in nodes if node.num_requests != 0]
     queue_lengths = [node.max_queue_length for node in nodes]
     elapsed_times = [request.receive_time - request.create_time for request in requests]
     average_hit_ratio = statistics.mean(cache_hit_ratios)
@@ -303,20 +315,16 @@ def main():
     node2 = Node([0,800], origin, 7, 0, 1)
     node3 = Node([0,700], origin, 7, 0, 2)
 
-    workload = []
-    random.seed(34239042)
-
     user1 = User([0,0], [(1, 5), (1, 250), (2, 26), (2, 300), (3, 19)], 0)
-    user2 = User([0, 0], workload, 1)
     sim = Simulator([user1], [origin], [node1, node2, node3])
 
     sim.initial_schedule()
     sim.run()
 
-    get_stats(user1)
-  #  get_stats(user2)
-    print(f"Cache Hit Percentage: {node1.cache_hits / node1.num_requests * 100}")
+    print_trace(user1)
+    print_stats(sim)
 
 
 if __name__ == "__main__":
-    run_simulation([0, 100], [[0,50]],[[0,0]], 2, 10, 200, False)
+    main()
+   # run_simulation([0, 100], [[0,50]],[[0,0]], 2, 10, 200, False)
