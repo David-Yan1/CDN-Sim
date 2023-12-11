@@ -211,6 +211,8 @@ def run_simulation(coordinates, node_coordinates, user_coordinates, cache_policy
     elapsed_times = [request.receive_time - request.create_time for request in requests]
     average_hit_ratio = statistics.mean(cache_hit_ratios)
     average_wait_time = statistics.mean(elapsed_times)
+    max_wait_time = max(elapsed_times)
+    min_wait_time = min(elapsed_times)
 
     # for request in requests:
     #     print(request)
@@ -237,6 +239,8 @@ def run_simulation(coordinates, node_coordinates, user_coordinates, cache_policy
         "cache_hit_percentage": average_hit_ratio,
         "total_requests": len(requests),
         "average_request_wait_time": average_wait_time,
+        "min_request_wait_time": min_wait_time,
+        "max_wait_time": max_wait_time,
         "total_time_elapsed": elapsed_time
         # plus any other statistics you want to add
     }
@@ -265,9 +269,11 @@ def simulate_inputs(origin_coords, node_coords, user_coords, cache_policy, cache
 
     users = []
 
-    samples = list(range(0,num_items))
+    samples = np.ones(num_items)
+    samples[random.randint(0, num_items-1)] *= num_items
 
-    for count, coords in enumerate(user_coords):
+    count = 0
+    for coords in user_coords:
         for i in range(100):
             workload = []
             for j in range(20):
@@ -276,6 +282,7 @@ def simulate_inputs(origin_coords, node_coords, user_coords, cache_policy, cache
                 workload.append((x,y))
             user = User(coords, workload, count)
             users.append(user)
+            count += 1
     
     sim = Simulator(users, [origin], nodes)
     sim.initial_schedule()
