@@ -211,6 +211,8 @@ def run_simulation(coordinates, node_coordinates, user_coordinates, cache_policy
     elapsed_times = [request.receive_time - request.create_time for request in requests]
     average_hit_ratio = statistics.mean(cache_hit_ratios)
     average_wait_time = statistics.mean(elapsed_times)
+    total_wait_time = sum(elapsed_times)
+    max_queue_length = max(queue_lengths)
     max_wait_time = max(elapsed_times)
     min_wait_time = min(elapsed_times)
 
@@ -239,9 +241,11 @@ def run_simulation(coordinates, node_coordinates, user_coordinates, cache_policy
         "cache_hit_percentage": average_hit_ratio,
         "total_requests": len(requests),
         "average_request_wait_time": average_wait_time,
+        "total_wait_time": total_wait_time,
         "min_request_wait_time": min_wait_time,
         "max_wait_time": max_wait_time,
-        "total_time_elapsed": elapsed_time
+        "total_time_elapsed": elapsed_time,
+        "max_queue_length": max_queue_length,
         # plus any other statistics you want to add
     }
     return {"data": results}
