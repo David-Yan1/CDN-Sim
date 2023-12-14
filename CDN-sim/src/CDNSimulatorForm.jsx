@@ -8,6 +8,7 @@ function CDNSimulatorForm({ setShowResults, setResults }) {
   const [userCoordinates, setUserCoordinates] = useState([]);
   const [cachePolicy, setCachePolicy] = useState(0);
   const [cacheSize, setCacheSize] = useState(50);
+  const [numResources, setNumResources] = useState(250);
   const [rerouteRequests, setRerouteRequests] = useState(false);
   const [maxConcurrentRequests, setMaxConcurrentRequests] = useState(50);
 
@@ -40,6 +41,7 @@ function CDNSimulatorForm({ setShowResults, setResults }) {
       maxConcurrentRequests,
       coordinates,
       nodeCoordinates,
+      numResources,
     };
     const queryString = new URLSearchParams({
       data: JSON.stringify(formData),
@@ -51,7 +53,7 @@ function CDNSimulatorForm({ setShowResults, setResults }) {
   };
   const handleReset = () => {
     setNodeCoordinates([]);
-    setUserCoordinates([])
+    setUserCoordinates([]);
   };
   return (
     <form onSubmit={handleSubmit} className="cdn-form">
@@ -72,9 +74,11 @@ function CDNSimulatorForm({ setShowResults, setResults }) {
           setCoordinates={setNodeCoordinates}
         />
       </div>
-    {/* User locations */}
-    <div>
-        <label>Where do you want the users to be? (Each dot represents 100 users)</label>
+      {/* User locations */}
+      <div>
+        <label>
+          Where do you want the users to be? (Each dot represents 100 users)
+        </label>
         <MultiMap
           coordinates={userCoordinates}
           setCoordinates={setUserCoordinates}
@@ -110,6 +114,18 @@ function CDNSimulatorForm({ setShowResults, setResults }) {
       </div>
 
       <h2>Additional Inputs</h2>
+      {/* Cache Size */}
+      <div>
+        <label>Total number of requestable resources</label>
+        <input
+          type="range"
+          min="1"
+          max="500"
+          value={numResources}
+          onChange={(e) => setNumResources(e.target.value)}
+        />
+        <span>{cacheSize}</span>
+      </div>
 
       {/* Max Concurrent Requests Per Server */}
       <div>

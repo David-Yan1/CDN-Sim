@@ -29,8 +29,9 @@ def simulate():
         maxConcurrentRequests = json_data["maxConcurrentRequests"]
         coordinates = json_data["coordinates"]
         nodeCoordinates = json_data["nodeCoordinates"]
+        numResources = json_data["numResources"]
 
-        results = run_simulation(coordinates=coordinates, node_coordinates=nodeCoordinates, user_coordinates=userCoordinates, cache_policy=cachePolicy, cache_size=cacheSize,max_concurrent_requests=maxConcurrentRequests, reroute_requests=rerouteRequests)
+        results = run_simulation(coordinates=coordinates, node_coordinates=nodeCoordinates, user_coordinates=userCoordinates, cache_policy=cachePolicy, cache_size=cacheSize,max_concurrent_requests=maxConcurrentRequests, reroute_requests=rerouteRequests, num_resources = numResources)
 
         return  jsonify(results), 200
     else:
