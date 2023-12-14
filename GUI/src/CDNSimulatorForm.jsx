@@ -124,7 +124,7 @@ function CDNSimulatorForm({ setShowResults, setResults }) {
           value={numResources}
           onChange={(e) => setNumResources(e.target.value)}
         />
-        <span>{cacheSize}</span>
+        <span>{numResources}</span>
       </div>
 
       {/* Max Concurrent Requests Per Server */}

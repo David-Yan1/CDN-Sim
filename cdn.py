@@ -262,11 +262,15 @@ def run_simulation(coordinates, node_coordinates, user_coordinates, cache_policy
 def simulate_inputs(origin_coords, node_coords, user_coords, cache_policy, cache_size, max_request_per_second, num_items, reroute_requests):
     global node_wait, congestion_reroute
     congestion_reroute = reroute_requests
-    node_wait = math.floor(1000 / max_request_per_second)
+    node_wait = math.floor(1000 / int(max_request_per_second))
 
     origin_coords = [400 * x for x in origin_coords]
     node_coords = [[400 * y for y in x] for x in node_coords]
     user_coords = [[400 * y for y in x] for x in user_coords]
+
+    cache_policy = int(cache_policy)
+    num_items = int(num_items)
+    cache_size = int(cache_size)
 
     items = {}
     for i in range(num_items):
