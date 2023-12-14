@@ -214,9 +214,8 @@ class Request:
 def run_simulation(coordinates, node_coordinates, user_coordinates, cache_policy, cache_size, max_concurrent_requests, num_resources,reroute_requests=False):
     # example input: {'userCoordinates': [[61.13194783528646, 44.944437662760414]], 'cachePolicy': 0, 'cacheSize': 50, 'rerouteRequests': False, 'maxConcurrentRequests': 50, 'coordinates': [33.131947835286454, 33.6111094156901], 'nodeCoordinates': [[61.13194783528646, 44.944437662760414], [65.79861450195312, 25.27777099609375], [19.798614501953125, 31.27777099609375], [19.63194783528646, 37.944437662760414], [35.298614501953125, 58.94443766276042], [65.9652811686198, 40.611104329427086]]}
     # note: cache policy: 0= LRU, 1 = FIFO, 2 = LFU
-    requests, nodes, elapsed_time = simulate_inputs(coordinates, node_coordinates, user_coordinates, cache_policy, cache_size, max_concurrent_requests, reroute_requests=False)
+    requests, nodes, elapsed_time = simulate_inputs(coordinates, node_coordinates, user_coordinates, cache_policy, cache_size, max_concurrent_requests,num_resources, reroute_requests)
 
-     
     cache_hit_ratios = [(node.cache_hits / node.num_requests * 100) for node in nodes if node.num_requests != 0]
     queue_lengths = [node.max_queue_length for node in nodes]
     elapsed_times = [request.receive_time - request.create_time for request in requests]
@@ -260,7 +259,7 @@ def run_simulation(coordinates, node_coordinates, user_coordinates, cache_policy
     }
     return {"data": results}
 
-def simulate_inputs(origin_coords, node_coords, user_coords, cache_policy, cache_size, max_request_per_second, reroute_requests):
+def simulate_inputs(origin_coords, node_coords, user_coords, cache_policy, cache_size, max_request_per_second, num_items, reroute_requests):
     global node_wait, congestion_reroute
     congestion_reroute = reroute_requests
     node_wait = math.floor(1000 / max_request_per_second)
@@ -269,7 +268,6 @@ def simulate_inputs(origin_coords, node_coords, user_coords, cache_policy, cache
     node_coords = [[400 * y for y in x] for x in node_coords]
     user_coords = [[400 * y for y in x] for x in user_coords]
 
-    num_items = random.randint(cache_size * 2, cache_size * 5)
     items = {}
     for i in range(num_items):
         items[i] = Item(i, 1)

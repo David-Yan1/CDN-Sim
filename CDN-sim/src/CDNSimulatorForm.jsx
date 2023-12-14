@@ -116,7 +116,7 @@ function CDNSimulatorForm({ setShowResults, setResults }) {
       <h2>Additional Inputs</h2>
       {/* Cache Size */}
       <div>
-        <label>Total number of requestable resources</label>
+        <label>Total number of requestable items</label>
         <input
           type="range"
           min="1"
