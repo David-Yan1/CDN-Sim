@@ -1,11 +1,11 @@
 # CDN-Sim
 
-To run frontend:
+To run frontend (/CDN-Sim/GUI):
 
 - npm install
 - npm run dev
 
-To run backend:
+To run backend (/CDN-sim):
 
-- export FLASK_APP=app.py
-- flask run
+- python -m flask run
+

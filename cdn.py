@@ -9,7 +9,7 @@ from functools import partial
 import numpy as np
 
 
-node_wait = 10 # 200 requests per second
+node_wait = 5 # 200 requests per second
 congestion_reroute = False
 reroute_threshold = 50
 
@@ -226,12 +226,6 @@ def run_simulation(coordinates, node_coordinates, user_coordinates, cache_policy
     max_wait_time = max(elapsed_times)
     min_wait_time = min(elapsed_times)
 
-    # for request in requests:
-    #     print(request)
-    # print(average_hit_ratio)
-    # print(average_wait_time)
-    # print(queue_lengths)
-
     results = {
         # all requests made, sorted in chronological order
         "requests": [
@@ -327,4 +321,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-   # run_simulation([0, 100], [[0,50]],[[0,0]], 2, 10, 200, False)
