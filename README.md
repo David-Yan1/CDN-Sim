@@ -8,4 +8,5 @@ To run frontend (/CDN-Sim/GUI):
 To run backend (/CDN-sim):
 
 - python -m flask run
+- (pip install any requirements when prompted)
 
